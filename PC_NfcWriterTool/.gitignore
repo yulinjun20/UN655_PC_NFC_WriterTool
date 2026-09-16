@@ -1,0 +1,14 @@
+bin/
+obj/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+.vs/
+*.nupkg
+uploads/
+agent-tools/
+*.log
+PC_NfcWriterTool/data/
+*.db
+*.db-journal
