@@ -112,6 +112,30 @@ namespace PC_NfcWriterTool.Services
             get { return Count == 0 ? 0 : 1; }
         }
 
+
+        public bool ContainsCardId(string cardId)
+        {
+            if (string.IsNullOrEmpty(cardId))
+            {
+                return false;
+            }
+
+            lock (_sync)
+            {
+                for (int i = 0; i < _items.Count; i++)
+                {
+                    Data.QueueItem item = _items[i];
+                    if (item != null
+                        && string.Equals(item.CardId, cardId, StringComparison.OrdinalIgnoreCase))
+                    {
+                        return true;
+                    }
+                }
+            }
+
+            return false;
+        }
+
         public int OriginalTotal { get; set; }
 
         private void RaiseChanged()

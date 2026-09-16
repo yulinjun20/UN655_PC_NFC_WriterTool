@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Drawing;
 using System.Windows.Forms;
 using PC_NfcWriterTool.Data;
@@ -72,8 +73,8 @@ namespace PC_NfcWriterTool.Forms
         {
             var menu = new MenuStrip();
             var file = new ToolStripMenuItem("文件(&F)");
-            file.DropDownItems.Add("导入清单", null, (s, e) => StubDialogs.NotInM1("导入 Excel/TXT/CSV"));
-            file.DropDownItems.Add("导出记录", null, (s, e) => StubDialogs.NotInM1("导出记录"));
+            file.DropDownItems.Add("导入清单", null, (s, e) => OnImportList());
+            file.DropDownItems.Add("导出记录", null, (s, e) => OnExportRecords());
             file.DropDownItems.Add(new ToolStripSeparator());
             file.DropDownItems.Add("退出", null, (s, e) => Close());
 
@@ -138,9 +139,9 @@ namespace PC_NfcWriterTool.Forms
                 Dock = DockStyle.Fill,
                 ColumnCount = 1,
                 RowCount = 5,
-                Padding = new Padding(12, 8, 12, 8)
+                Padding = new Padding(12, 12, 12, 8)
             };
-            root.RowStyles.Add(new RowStyle(SizeType.Absolute, 70));
+            root.RowStyles.Add(new RowStyle(SizeType.Absolute, 96));
             root.RowStyles.Add(new RowStyle(SizeType.Absolute, 150));
             root.RowStyles.Add(new RowStyle(SizeType.Absolute, 190));
             root.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
@@ -169,22 +170,22 @@ namespace PC_NfcWriterTool.Forms
             var panel = new Panel { Dock = DockStyle.Fill, BackColor = UiTheme.Panel };
             panel.Paint += (s, e) => ControlPaint.DrawBorder(e.Graphics, panel.ClientRectangle, Color.Gainsboro, ButtonBorderStyle.Solid);
 
-            var comLabel = new Label { Text = "串口:", AutoSize = true, Location = new Point(12, 12) };
+            var comLabel = new Label { Text = "串口:", AutoSize = true, Location = new Point(12, 16) };
             _ports = new ComboBox
             {
                 DropDownStyle = ComboBoxStyle.DropDownList,
-                Location = new Point(52, 8),
+                Location = new Point(52, 12),
                 Width = 110
             };
             _ports.DropDown += (s, e) => RefreshPorts(keepSelection: true);
 
-            var baud = new Label { Text = "波特率: 115200", AutoSize = true, Location = new Point(175, 12) };
+            var baud = new Label { Text = "波特率: 115200", AutoSize = true, Location = new Point(175, 16) };
             var open = UiTheme.PrimaryButton("打开");
-            open.Location = new Point(310, 6);
+            open.Location = new Point(310, 10);
             open.Size = new Size(72, 28);
             open.Click += OnOpenPort;
             var close = UiTheme.SecondaryButton("关闭");
-            close.Location = new Point(390, 6);
+            close.Location = new Point(390, 10);
             close.Size = new Size(72, 28);
             close.Click += OnClosePort;
 
@@ -194,21 +195,21 @@ namespace PC_NfcWriterTool.Forms
                 AutoSize = true,
                 Font = UiTheme.Ui(12f, FontStyle.Bold),
                 ForeColor = UiTheme.Disconnected,
-                Location = new Point(480, 8)
+                Location = new Point(480, 12)
             };
-            _connText = new Label { Text = "未连接", AutoSize = true, Location = new Point(500, 12) };
+            _connText = new Label { Text = "未连接", AutoSize = true, Location = new Point(500, 16) };
 
             _operatorLabel = new Label
             {
                 Text = "操作员: " + _operatorId,
                 AutoSize = true,
-                Location = new Point(12, 42),
+                Location = new Point(12, 58),
                 Font = UiTheme.Ui(9.5f, FontStyle.Bold)
             };
             _statsLabel = new Label
             {
                 AutoSize = true,
-                Location = new Point(220, 42),
+                Location = new Point(220, 58),
                 Text = StatsText()
             };
 
@@ -865,6 +866,89 @@ namespace PC_NfcWriterTool.Forms
             else
             {
                 _keyStatus.Text = "密钥备案: " + System.IO.Path.GetFileName(info.FilePath) + " (已加载·仅备案)";
+            }
+        }
+
+
+        private void OnImportList()
+        {
+            if (_engine != null && _engine.IsRunning)
+            {
+                MessageBox.Show(this, "自动发卡进行中，请先暂停后再导入清单。", Text,
+                    MessageBoxButtons.OK, MessageBoxIcon.Information);
+                return;
+            }
+
+            if (_queue.Count > 0)
+            {
+                DialogResult ask = MessageBox.Show(this,
+                    "当前队列仍有 " + _queue.Count + " 条待发。" + Environment.NewLine
+                    + "是否将导入的合法行追加到队列末尾？" + Environment.NewLine
+                    + "选「否」将取消本次导入（不清空现有队列）。",
+                    "导入清单", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
+                if (ask != DialogResult.Yes)
+                {
+                    return;
+                }
+            }
+
+            using (var dlg = new ImportListForm(_store, _queue))
+            {
+                if (dlg.ShowDialog(this) != DialogResult.OK || dlg.AcceptedItems == null)
+                {
+                    return;
+                }
+
+                int n = 0;
+                foreach (QueueItem item in dlg.AcceptedItems)
+                {
+                    if (item == null)
+                    {
+                        continue;
+                    }
+
+                    _queue.Enqueue(item);
+                    n++;
+                }
+
+                if (_queue.OriginalTotal < _queue.Count)
+                {
+                    _queue.OriginalTotal = _queue.Count;
+                }
+
+                RefreshQueuePanel();
+                MessageBox.Show(this, "已追加 " + n + " 条到队列。请手动点「开始自动发卡」。",
+                    Text, MessageBoxButtons.OK, MessageBoxIcon.Information);
+            }
+        }
+
+        private void OnExportRecords()
+        {
+            IList<IssuedCard> rows = _store.QueryIssued("", "", "", "");
+            using (var dlg = new SaveFileDialog())
+            {
+                dlg.Title = "导出发卡记录";
+                dlg.Filter = "CSV (*.csv)|*.csv";
+                dlg.DefaultExt = "csv";
+                dlg.FileName = RecordExport.DefaultFileName();
+                if (dlg.ShowDialog(this) != DialogResult.OK)
+                {
+                    return;
+                }
+
+                try
+                {
+                    RecordExport.WriteIssuedCsv(rows, dlg.FileName);
+                    MessageBox.Show(this,
+                        "已导出 " + rows.Count + " 条到：" + Environment.NewLine + dlg.FileName
+                        + Environment.NewLine + "（最多 500 条，与查询上限相同）",
+                        Text, MessageBoxButtons.OK, MessageBoxIcon.Information);
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show(this, "导出失败: " + ex.Message, Text,
+                        MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                }
             }
         }
 

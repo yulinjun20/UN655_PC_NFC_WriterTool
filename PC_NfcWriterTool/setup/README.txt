@@ -1,11 +1,23 @@
-Inno Setup 安装包（M3）
+Inno Setup 安装包（M2）
 
-TODO: 使用 Inno Setup 6 生成 Setup.exe。
+前置：
+1. Visual Studio 2022（.NET 桌面开发）
+2. Inno Setup 6（ISCC.exe）
 
-规划行为（见 docs/manual.md §2）：
-- 安装 UN655 NFC 发卡工具到 Program Files
-- 检测/提示安装 .NET Framework 4.7.2（Win7 刚需）
-- 桌面快捷方式「UN655 NFC 发卡工具」
-- 复制 templates\ 与 docs\
+生成：
+  powershell -ExecutionPolicy Bypass -File setup\build_setup.ps1
 
-M1 不提供安装包。Yu-PC 请用 Visual Studio 打开 PC_NfcWriterTool.sln 生成后运行 bin\Debug\PC_NfcWriterTool.exe。
+输出：
+  setup\output\UN655_NFC_发卡工具_Setup_1.0.0.exe
+
+安装内容：
+- Release 程序与 SQLite / ExcelDataReader / x86+x64 Interop
+- docs\、templates\
+- 不打包 data\nfc_writer.db
+
+用户数据：
+  %LocalAppData%\UN655\PC_NfcWriterTool\data\nfc_writer.db
+  卸载安装包时保留该目录（发卡/作废记录不丢）。
+
+.NET：
+  安装向导检测 4.7.2；缺失时提示打开微软下载页。

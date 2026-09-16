@@ -76,6 +76,11 @@
       <HintPath>..\packages\Stub.System.Data.SQLite.Core.NetFramework.1.0.118.0\lib\net46\System.Data.SQLite.dll</HintPath>
       <Private>True</Private>
     </Reference>
+    <Reference Include="ExcelDataReader">
+      <HintPath>..\packages\ExcelDataReader.3.7.0\lib\net462\ExcelDataReader.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="System.IO.Compression" />
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Program.cs" />
@@ -113,6 +118,11 @@
     <Compile Include="Serial\Mh2020cReader.cs" />
     <Compile Include="Services\AutoWriteEngine.cs" />
     <Compile Include="Services\PendingQueue.cs" />
+    <Compile Include="Services\ImportListParser.cs" />
+    <Compile Include="Services\RecordExport.cs" />
+    <Compile Include="Forms\ImportListForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />

@@ -1,4 +1,4 @@
-bin/
+﻿bin/
 obj/
 *.user
 *.suo
@@ -9,6 +9,19 @@ obj/
 uploads/
 agent-tools/
 *.log
-PC_NfcWriterTool/data/
+
+# Runtime SQLite DB files only (avoid ignoring source Data\*.cs on case-insensitive Windows)
 *.db
 *.db-journal
+*.db-shm
+*.db-wal
+nfc_writer.db
+
+# Inno build scratch / installer binaries (rebuild with setup\build_setup.ps1)
+setup/staging/
+setup/output/
+**/setup/staging/
+**/setup/output/
+
+# Large local tools
+nuget.exe
